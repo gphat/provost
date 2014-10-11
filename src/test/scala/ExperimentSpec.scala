@@ -1,7 +1,9 @@
 import github.gphat.Experiment
 
+import java.util.concurrent.Executors
 import org.specs2.mutable.Specification
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -51,6 +53,15 @@ class ExperimentSpec extends Specification {
       ex.getFuture must beTrue.await(timeout = Duration(2000, "millis"))
       ex.getControl.isCompleted must beTrue
       ex.getExperiment.isCompleted must beTrue
+
+      ex.getControl.value must beSome.which(_.isSuccess)
+      ex.getExperiment.value must beSome.which(_.isSuccess)
+    }
+
+    "use supplied execution context" in {
+      val ec = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
+      val ex = new Experiment[String](control = slowOK, experiment = fastOK)(ec)
+      ex.perform must beEqualTo("OK").await(timeout = Duration(2000, "millis"))
     }
   }
 }
