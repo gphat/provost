@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/gphat/provost.svg?branch=master)](https://travis-ci.org/gphat/provost)
+
 Provost is a library inspired by GitHub's [dat-science](https://github.com/github/dat-science) and aims to allow easy side
 by side testing of code paths.
 
