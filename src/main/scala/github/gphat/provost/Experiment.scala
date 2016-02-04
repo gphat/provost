@@ -6,24 +6,24 @@ import scala.util.Try
 
 class Experiment[A](
   control: Future[A],
-  experiment: Future[A]
+  candidate: Future[A]
 )(implicit xc: ExecutionContext = ExecutionContext.global) {
   // Keep up with how many have completed
   val counter = new AtomicInteger(2)
   // Promises to watch
   val promise = Promise[A]()
-  val experimentPromise = Promise[Boolean]()
+  val candidatePromise = Promise[Boolean]()
 
   def getControl = control
 
-  def getExperiment = experiment
+  def getCandidate = candidate
 
-  def getFuture = experimentPromise.future
+  def getFuture = candidatePromise.future
 
   def perform = {
     // Install a handler on both futures
     control.onComplete(measure)
-    experiment.onComplete(measure)
+    candidate.onComplete(measure)
 
     // Tie our returned future to the control
     promise.completeWith(control)
@@ -35,7 +35,7 @@ class Experiment[A](
   def measure(result: Try[A]) = {
     this.synchronized {
       if(counter.decrementAndGet == 0) {
-        experimentPromise.success(true)
+        candidatePromise.success(true)
       }
     }
   }

@@ -2,9 +2,9 @@ organization := "provost"
 
 name := "provost"
 
-version := "0.0.1-SNAPSHOT"
+version := "1.0.0"
 
-scalaVersion := "2.11.2"
+scalaVersion := "2.11.7"
 
 crossScalaVersions := Seq("2.10.4")
 
@@ -16,6 +16,6 @@ resolvers ++= Seq("snapshots", "releases").map(Resolver.sonatypeRepo)
 
 resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 
-libraryDependencies += "org.specs2" %% "specs2" % "2.4.6" % "test"
+libraryDependencies += "org.specs2" %% "specs2-core" % "3.7" % "test"
 
 publishTo := Some(Resolver.file("file",  new File( "/Users/gphat/src/mvn-repo/releases" )) )

@@ -33,34 +33,34 @@ class ExperimentSpec extends Specification {
   "Experiment" should {
 
     "handle normal cases" in {
-      val ex = new Experiment[String](control = slowOK, experiment = fastOK)
+      val ex = new Experiment[String](control = slowOK, candidate = fastOK)
       ex.perform must beEqualTo("OK").await(timeout = Duration(2000, "millis"))
     }
 
-    "silently handle experiment failures" in {
-      val ex = new Experiment[String](control = slowOK, experiment = fastFail)
+    "silently handle candidate failures" in {
+      val ex = new Experiment[String](control = slowOK, candidate = fastFail)
       ex.perform must beEqualTo("OK").await(timeout = Duration(2000, "millis"))
     }
 
     "handle control failures" in {
-      val ex = new Experiment[String](control = fastFail, experiment = slowOK)
+      val ex = new Experiment[String](control = fastFail, candidate = slowOK)
       ex.perform must throwA[Exception].await(timeout = Duration(2000, "millis"))
     }
 
     "handle entire experiment" in {
-      val ex = new Experiment[String](control = fastOK, experiment = slowOK)
+      val ex = new Experiment[String](control = fastOK, candidate = slowOK)
       ex.perform
       ex.getFuture must beTrue.await(timeout = Duration(2000, "millis"))
       ex.getControl.isCompleted must beTrue
-      ex.getExperiment.isCompleted must beTrue
+      ex.getCandidate.isCompleted must beTrue
 
       ex.getControl.value must beSome.which(_.isSuccess)
-      ex.getExperiment.value must beSome.which(_.isSuccess)
+      ex.getCandidate.value must beSome.which(_.isSuccess)
     }
 
     "use supplied execution context" in {
       val ec = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
-      val ex = new Experiment[String](control = slowOK, experiment = fastOK)(ec)
+      val ex = new Experiment[String](control = slowOK, candidate = fastOK)(ec)
       ex.perform must beEqualTo("OK").await(timeout = Duration(2000, "millis"))
     }
   }
