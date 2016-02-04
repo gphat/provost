@@ -12,13 +12,13 @@ class Experiment[A](
   val counter = new AtomicInteger(2)
   // Promises to watch
   val promise = Promise[A]()
-  val candidatePromise = Promise[Boolean]()
+  val experimentPromise = Promise[Boolean]()
 
   def getControl = control
 
   def getCandidate = candidate
 
-  def getFuture = candidatePromise.future
+  def getFuture = experimentPromise.future
 
   def perform = {
     // Install a handler on both futures
@@ -35,7 +35,7 @@ class Experiment[A](
   def measure(result: Try[A]) = {
     this.synchronized {
       if(counter.decrementAndGet == 0) {
-        candidatePromise.success(true)
+        experimentPromise.success(true)
       }
     }
   }
