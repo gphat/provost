@@ -6,7 +6,7 @@ version := "1.0.0"
 
 scalaVersion := "2.11.7"
 
-crossScalaVersions := Seq("2.10.4")
+crossScalaVersions := Seq("2.10.6")
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
