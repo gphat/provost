@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/gphat/provost.svg?branch=master)](https://travis-ci.org/gphat/provost)
 
 Provost is a Scala library inspired by GitHub's
-[dat-science](https://github.com/github/dat-science) and aims to allow easy side
+[scientist](https://github.com/github/scientist) and aims to allow easy side
 by side testing of code paths using Futures.
 
 # Features
@@ -11,8 +11,9 @@ by side testing of code paths using Futures.
 
 # Usage
 
-Provost uses Futures. An experiment and a control Future must be provided. The `perform` method returns a Future that
-will be completed when the control completes and it will return the result of the control Future.
+Provost uses Futures. An **experiment** and a **control** Future must be
+provided. The `perform` method returns a Future that will be completed when the
+control completes and it will return the result of the control Future.
 
 ```scala
 import github.gphat.Experiment
@@ -32,41 +33,98 @@ def slowOK = {
   }
 }
 
-// Make an experiment
-val ex = new Experiment[String](control = slowOK, experiment = fastOK)
+// Make an experiment! Note that the experiment is parameterized to the type
+// we expect from our experiments. We provide a future for the control and
+// for the candidate! Names are optional.
+val ex = new Experiment[String](name = Some("better_string"), control = slowOK, candidate = fastOK)
 val result = ex.perform
 
-// You can also supply your own execution context. Provost uses the
-// default scala global execution context otherwise.
-val ex2 = new Experiment[String](control = slowOK, experiment = fastOK)()
-
-// The returned future is tied to the control and will return even if
-// the experiment hasn't finished yet.
-result.map({ r =>
+// The returned Future is tied to the control and will return even if
+// the candidate hasn't finished yet.
+ex.map({ r =>
   // Do something!
+  println(r) // This is the output of the control!
 })
 
-// You can also get a future that is tied to *both* future's completing.
-// It only returns true, but you can block/await/callback it's completion
-val wholeExperiment = ex.getFuture
+// You can also get a Future that is tied to *both* Futures completing.
+// It returns a Result and you can block/await/callback it's completion.
+val wholeExperiment = ex.getTotalFuture
 wholeExperiment.map({ result =>
   // Now you can look at the two futures and compare them or whatever
-  val control = ex.getControl
-  val experiment = ex.getExperiment
+  val control = ex.control
+  val candidate = ex.candidate
 
+  // Both Futures are complete
   control.isCompleted // True!
-  experiment.isCompleted // True!
+  candidate.isCompleted // True!
 
-  control.value.map({ c =>
-    experiment.value.map({ e =>
-      c // This will be a Try!
-      e // This will be a Try!
-      // Here you can test equality or whatever you need to do
-      // to verify that your experimental code path worked.
-    })
+  // You can test if both underlying Trys were successful.
+  result.succeeded
+
+  // You can compare the execution times of each. Note that these times will be
+  // measured from the start of the experiment to each Future's completion! This
+  // means we might be missing some time since you created these Futures by
+  // yourself! Note that these are Scala Duration objects.
+  result.candidateDuration
+  result.controlDuration
+
+  // You can inspect the two results to determine equality, which Provost leaves
+  // to you to do since equality is hard. These will be Try[A]. You can use the
+  // aforementioned `succeeded` to determine how to unwind the Try
+  result.candidateResult
+  result.candidateResult
+
+  // So, as an example, maybe you'd resolve the whole thing like this:
+  val control = oldFunction // A Future[String] that we know works
+  val candidate = newFunction // A Future[String] that we're testing
+
+  val ex = Experiment[String](name = Some("better_string"), control = control, candidate = candidate)
+
+  def experimentLogger(result: Result[String]) = {
+    if(fullResult.isSuccess) {
+      // This is a String, so compare them!
+      if(fullResult.controlResult.get.equals(fullResult.candidateResult.get))) {
+        println("Results matched!")
+      } else {
+        println("Results did not match!")
+      }
+    } else {
+      if(fullResult.controlResult.isFailure && fullResult.candidateResult.isFailure) {
+        println("Both the candidate and the control failed, maybe that's ok?")
+      if(fullResult.control.isFailure) {
+        println("The control failed and the candidate succeeded. Maybe it's better!")
+      } else {
+        println("The candidate failed! Back to the drawing board!")
+      }
+    }
+    // Now we can report on duration
+    println("Control took ${fullResult.controlDuration.toMillis} ms")
+    println("Candidate took ${fullResult.candidateDuration.toMillis} ms")
+
+    // You could even emit these as metrics using the Experiment's name!
+    statsd.time("experiment.${ex.name.get}.control.duration_ms", fullResult.controlDuration.toMillis)
+    statsd.time("experiment.${ex.name.get}.candidate.duration_ms", fullResult.candidateDuration.toMillis)
+  }
+
+  ex.getTotalFuture.onComplete({ fullResult =>
+  })
+
+  ex.perform.map({ res =>
+    // Do whatever you were gonna do with the control's result, since it's
+    // now in `res`!
   })
 })
 
+```
+
+# Execution Contexts
+
+You can also supply your own execution context. Provost uses the default Scala
+global execution context otherwise.
+
+```scala
+val ec = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
+val ex = new Experiment[String](control = slowOK, candidate = fastOK)(ec)
 ```
 
 # Internals

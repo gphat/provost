@@ -16,6 +16,7 @@ resolvers ++= Seq("snapshots", "releases").map(Resolver.sonatypeRepo)
 
 resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 
-libraryDependencies += "org.specs2" %% "specs2-core" % "3.7" % "test"
+libraryDependencies += "org.scalactic" %% "scalactic" % "2.2.6"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.6" % "test"
 
 publishTo := Some(Resolver.file("file",  new File( "/Users/gphat/src/mvn-repo/releases" )) )
