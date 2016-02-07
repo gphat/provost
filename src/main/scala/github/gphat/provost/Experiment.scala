@@ -5,17 +5,41 @@ import scala.concurrent.{ExecutionContext,Future,Promise}
 import scala.concurrent.duration._
 import scala.util.Try
 
+/** The result of an experiment.
+  *
+  * Please note that the Result does not test equality of the underlying `Future`'s
+  * results, it merely checks that the `Try`s therein didn't fail.
+  *
+  * @constructor Create a new result
+  * @param name the name of the experiment that generated this result
+  * @param control the future for the control
+  * @param candidate the future for the candidate
+  * @param controlDuration the amount of time for the control to complete
+  * @param candidateDuration the amount of time for the candidate to complete
+  * @param succeeded convenience boolean that signals if both future's underlying `Try`s were successful
+  */
 case class Result[A](
   name: Option[String],
   control: Future[A],
   candidate: Future[A],
   controlDuration: Duration,
   candidateDuration: Duration,
-  controlResult: Try[A],
-  candidateResult: Try[A],
   succeeded: Boolean
-)
+) {
+  /** Determine if our result equal each other. Note that this only work if the
+    * equals method works for the type `A`.
+    */
+  def equalled = succeeded && control.value.get.equals(candidate.value.get)
+}
 
+/** An experiment!
+  *
+  * @constructor Create a new experiment
+  * @param name an optional name, good for naming metrics or emitting logs, help future you remember what this is!
+  * @param control the control future that you want to verify against
+  * @param candidateEnd the candidate future you are testing out
+  * @param xc an optional execution context, uses `ExeuectionContext.global` by default
+  */
 class Experiment[A](
   val name: Option[String] = None,
   val control: Future[A],
@@ -33,8 +57,15 @@ class Experiment[A](
   val promise = Promise[A]()
   val experimentPromise = Promise[Result[A]]()
 
+  /** Get a Future that is completed when both the control and candidate have
+    * completed.
+    */
   def getTotalFuture = experimentPromise.future
 
+  /** Begin the experiment, returning a Future that completes when the control
+    * completes so that you can return a result from it regardless of how slow
+    * or fast the candidate might be.
+    */
   def perform = {
     // Install a handler on both futures
     control.onComplete(measureControl)
@@ -47,23 +78,21 @@ class Experiment[A](
     promise.future
   }
 
-  def measureCandidate(result: Try[A]) = {
+  private def measureCandidate(result: Try[A]) = {
     candidateEnd = Some(System.currentTimeMillis)
     measure
   }
 
-  def measureControl(result: Try[A]) = {
+  private def measureControl(result: Try[A]) = {
     controlEnd = Some(System.currentTimeMillis)
     measure
   }
 
-  def measure = {
+  private def measure = {
     counter.synchronized {
       // Increment our counter. If we hit zero then
       // we're done and can complete the experiment.
       if(counter.decrementAndGet == 0) {
-        val controlResult = control.value.get
-        val candidateResult = candidate.value.get
 
         experimentPromise.success(Result[A](
           name = name,
@@ -72,8 +101,6 @@ class Experiment[A](
           // Safe cuz we know we set both end times above!
           controlDuration = Duration(controlEnd.get - experimentBegin, MILLISECONDS),
           candidateDuration = Duration(candidateEnd.get - experimentBegin, MILLISECONDS),
-          controlResult = controlResult,
-          candidateResult = candidateResult,
           succeeded = control.value.map({ _.isSuccess }).getOrElse(false)
             && candidate.value.map({ _.isSuccess }).getOrElse(false)
         ))

@@ -80,13 +80,28 @@ wholeExperiment.map({ result =>
 
   val ex = Experiment[String](name = Some("better_string"), control = control, candidate = candidate)
 
+  // Assuming that your type can be compared with `equals`, you can use this!
+  if(ex.equalled) {
+    println("Yay, equality!")
+  } else {
+    println("Boo, we didn't equal up :(")
+  }
+
+  // See below
+  ex.getTotalFuture.onComplete(experimentLogger)
+
+  ex.perform.map({ res =>
+    // Do whatever you were gonna do with the control's result, since it's
+    // now in `res`!
+  })
+
+  // A more thorough walk through!
   def experimentLogger(result: Result[String]) = {
     if(fullResult.isSuccess) {
-      // This is a String, so compare them!
-      if(fullResult.controlResult.get.equals(fullResult.candidateResult.get))) {
-        println("Results matched!")
+      if(ex.equalled) {
+        println("Yay, equality!")
       } else {
-        println("Results did not match!")
+        println("Boo, we didn't equal up :(")
       }
     } else {
       if(fullResult.controlResult.isFailure && fullResult.candidateResult.isFailure) {
@@ -106,13 +121,6 @@ wholeExperiment.map({ result =>
     statsd.time("experiment.${ex.name.get}.candidate.duration_ms", fullResult.candidateDuration.toMillis)
   }
 
-  ex.getTotalFuture.onComplete({ fullResult =>
-  })
-
-  ex.perform.map({ res =>
-    // Do whatever you were gonna do with the control's result, since it's
-    // now in `res`!
-  })
 })
 
 ```

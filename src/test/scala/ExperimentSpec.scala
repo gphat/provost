@@ -83,6 +83,8 @@ class ExperimentSpec extends FlatSpec with Matchers with ScalaFutures {
       res.controlDuration.toMillis.toInt should be >= 125
       res.candidateDuration.toMillis.toInt should be >= 500
       res.candidateDuration.toMillis.toInt should be >= res.controlDuration.toMillis.toInt
+
+      res.equalled should be (true)
     })
   }
 
