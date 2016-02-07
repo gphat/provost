@@ -9,6 +9,20 @@ by side testing of code paths using Futures.
 * Asynchronous by way of Futures
 * Returns when the control Future completes so that the other codepath won't slow things down
 
+# Notes
+This is a pretty new library that was just refactored, so drop me a line if
+you've got ideas for improving it. It might change!
+
+# Using It
+
+```scala
+// Add the Dep
+libraryDependencies += "provost" %% "provost" % "1.0.0"
+
+// And a the resolver
+resolvers += "gphat" at "https://raw.github.com/gphat/mvn-repo/master/releases/"
+```
+
 # Usage
 
 Provost uses Futures. An **experiment** and a **control** Future must be
