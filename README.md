@@ -151,7 +151,7 @@ val ex = new Experiment[String](control = slowOK, candidate = fastOK)(ec)
 
 # Internals
 
-The Future returned by `perform` uses `completeWith` to tie itself to the provided control future. An `onComplete`
+The Future returned by `perform` uses `completeWith` to tie itself to the provided control Future. An `onComplete`
 is added to both the control and the experiment and an `AtomicInteger` in a `this.synchronized` block is used
 to track the completion of the two Futures. When both are complete the "whole experiment" Future is completed
-with `success(true)`.
+with `success(Result)`.
